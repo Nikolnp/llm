@@ -1,48 +1,43 @@
 import streamlit as st
-from langchain_community.llms import OpenAI
-import tiktoken
+import openai
 
-# Set page title and favicon
+# Set page configuration
 st.set_page_config(page_title="PharmaBot", page_icon=":pill:")
 
 # Page title
 st.title('PharmaBot - Your Pharmaceutical Support Chatbot')
 
 # Sidebar for API key input
-openai_api_key = st.sidebar.text_input('Enter your OpenAI API key')
+openai_api_key = st.sidebar.text_input('Enter your OpenAI API key', type="password")
 
-# Function to count tokens
-def count_tokens(string: str) -> int:
-    # Load the encoding for gpt-3.5-turbo (which uses cl100k_base)
-    encoding_name = "p50k_base"
-    encoding = tiktoken.get_encoding(encoding_name) 
-    # Encode the input string and count the tokens
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
+# Function to generate response using OpenAI
+def generate_response(input_text: str):
+    if not openai_api_key:
+        st.warning('Please enter your OpenAI API key!', icon='🔒')
+        return
 
-# Function to generate response
-def generate_response(input_text):
+    if not openai_api_key.startswith('sk-'):
+        st.error('Invalid API key format.')
+        return
+
     try:
-        # Check if API key is provided
-        if openai_api_key.startswith('sk-'):
-            llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
-            response = llm(input_text)
-            num_tokens = count_tokens(input_text)
-            st.info(f"Input contains {num_tokens} tokens.")
-            st.info(response)
-        else:
-            st.warning('Please enter your OpenAI API key!', icon='🔒')
+        openai.api_key = openai_api_key
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": input_text}]
+        )
+        st.info(response['choices'][0]['message']['content'])
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-# Form for text input and submit button
-with st.form('my_form'):
+# Input form for user query
+with st.form('user_input_form'):
     text = st.text_area('Enter your query:', 'How can I use this medication safely?')
     submitted = st.form_submit_button('Submit')
 
-# Generate response upon form submission
-if submitted:
-    generate_response(text)
+    # Process the input upon form submission
+    if submitted:
+        generate_response(text)
 
 # Footer with company information
 st.markdown("""
