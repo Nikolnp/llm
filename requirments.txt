@@ -1,1 +1,1 @@
-langchain-community
+openai==0.10.0
